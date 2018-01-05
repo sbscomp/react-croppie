@@ -1,1 +1,1 @@
-module.exports = require("./lib/Croppie.react");
+export default require("./lib/Croppie.react");
