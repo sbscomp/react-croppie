@@ -1,9 +1,9 @@
 import React from "react";
 import ReactDOM from "react-dom";
 import PropTypes from "prop-types";
-import {Transform, TransformOrigin} from "./Transform";
+import Transform from "./Transform";
 import StyleRelated from "./styleStuff";
-import {deepExtend, cssExtend} from './helpers';
+import {deepExtend, cssExtend, TransformOrigin} from './helpers';
 
 class Croppie extends React.Component {
     constructor(props) {
@@ -17,6 +17,28 @@ class Croppie extends React.Component {
         this.transform = null;
         this._currentZoom = 1;
         this.data = {};  //TODO
+
+        this.state = {};
+
+        this._bind = this._bind.bind(this);
+        this.onWheel = this.onWheel.bind(this);
+        this.mouseDown = this.mouseDown.bind(this);
+        this.keyDown = this.keyDown.bind(this);
+        this.keyMove = this.keyMove.bind(this);
+        this.changeZoom = this.changeZoom.bind(this);
+        this.mouseUp = this.mouseUp.bind(this);
+        this._updateOverlay = this._updateOverlay.bind(this);
+        this._setZoomerVal = this._setZoomerVal.bind(this);
+        this._onZoom = this._onZoom.bind(this);
+        this._getVirtualBoundaries = this._getVirtualBoundaries.bind(this);
+        this._updatePropertiesFromImage = this._updatePropertiesFromImage.bind(this);
+
+
+
+        this.preview = null;
+        this.viewport = null;
+        this.zoomer = null;
+        this.boundary = null;
     }
 
     componentDidMount() {
@@ -29,36 +51,37 @@ class Croppie extends React.Component {
     }
 
     render() {
-        var self = this;
         var contClass = 'croppie-container';
         var customViewportClass = this.props.viewport.type ? 'cr-vp-' + this.props.viewport.type : " ";
         var preview;
 
-        if(self.props.enableOrientation)
-            preview = <canvas  className="cr-image" ref="preview" style={this.state.previewStyle ||  {}}> </canvas>;
-        else
-            preview = <img src="" className="cr-image" ref="preview" style={this.state.previewStyle ||  {}}/>;
+        if (this.props.enableOrientation) {
+            preview = <canvas  className="cr-image" ref={(preview) => { this.preview = preview; }} style={this.state.previewStyle ||  {}}> </canvas>;
+        } else {
+            preview = <img src="" className="cr-image" ref={(preview) => { this.preview = preview; }} style={this.state.previewStyle ||  {}}/>;
+        }
+
 
         var onWheelFunc = this.props.enableZoom ? this.onWheel : () =>{};
         return (
             <div className={contClass}>
                 <div className="cr-boundary"
-                     ref="boundary"
+                     ref={(boundary) => { this.boundary = boundary; }}
                      style={{width :this.props.boundary.width,height:this.props.boundary.height}}
                      onWheel = {onWheelFunc}
                 >
                     {preview}
 
                     <div tabIndex="0"
-                         onKeyDown={this.keyDown}
-                         ref="viewport"
+                         onKeyDown={this.keyDown.bind(this)}
+                         ref={(viewport) => { this.viewport = viewport; }}
                          className={"cr-viewport " + customViewportClass }
                          style={{width :this.props.viewport.width,height:this.props.viewport.height}}
                     ></div>
 
                     <div className = "cr-overlay"
-                         onTouchStart = {this.mouseDown}
-                         onMouseDown = {this.mouseDown}
+                         onTouchStart = {this.mouseDown.bind(this)}
+                         onMouseDown = {this.mouseDown.bind(this)}
                          style = {this.state.overlayStyle}
                     ></div>
 
@@ -69,8 +92,8 @@ class Croppie extends React.Component {
                            className="cr-slider"
                            step="0.0001"
                            style={{display:this.props.showZoomer ? "": "none"}}
-                           onChange={this.changeZoom}
-                           ref="zoomer"
+                           onChange={this.changeZoom.bind(this)}
+                           ref={(zoomer) => { this.zoomer = zoomer; }}
                     />
                 </div>
                 }
@@ -110,14 +133,14 @@ class Croppie extends React.Component {
             this.originalY = touches.pageY;
         }
 
-        this.transform = Transform.parse(this.refs.preview);
+        this.transform = Transform.parse(this.preview);
         window.addEventListener('mousemove', this.mouseMove);
         window.addEventListener('touchmove', this.mouseMove);
         window.addEventListener('mouseup', this.mouseUp);
         window.addEventListener('touchend', this.mouseUp);
 
         document.body.style[StyleRelated.CSS_USERSELECT] = 'none';
-        this.vpRect = this.refs.viewport.getBoundingClientRect();
+        this.vpRect = this.viewport.getBoundingClientRect();
     }
     keyDown(ev) {
         var self =this;
@@ -129,10 +152,10 @@ class Croppie extends React.Component {
         if (ev.shiftKey && (ev.keyCode == UP_ARROW || ev.keyCode == DOWN_ARROW)) {
             var zoom = 0.0;
             if (ev.keyCode == UP_ARROW) {
-                zoom = parseFloat(self.refs.zoomer.value, 10) + parseFloat(self.refs.zoomer.step, 10)
+                zoom = parseFloat(this.zoomer.value, 10) + parseFloat(this.zoomer.step, 10)
             }
             else {
-                zoom = parseFloat(self.refs.zoomer.value, 10) - parseFloat(self.refs.zoomer.step, 10)
+                zoom = parseFloat(this.zoomer.value, 10) - parseFloat(this.zoomer.step, 10)
             }
             // self.setZoom(zoom);
             self._setZoomerVal(zoom);
@@ -141,9 +164,9 @@ class Croppie extends React.Component {
             ev.preventDefault();
             var movement = parseKeyDown(ev.keyCode);
 
-            self.transform = Transform.parse(self.refs.preview);
+            self.transform = Transform.parse(this.preview);
             document.body.style[StyleRelated.CSS_USERSELECT] = 'none';
-            self.vpRect = self.refs.viewport.getBoundingClientRect();
+            self.vpRect = this.viewport.getBoundingClientRect();
             self.keyMove(movement);
         }
 
@@ -226,10 +249,10 @@ class Croppie extends React.Component {
     changeZoom(){
         var self = this;
         this._onZoom({
-            value: parseFloat(this.refs.zoomer.value),
-            origin: new TransformOrigin(self.refs.preview),
-            viewportRect: self.refs.viewport.getBoundingClientRect(),
-            transform: Transform.parse(self.refs.preview)
+            value: parseFloat(this.zoomer.value),
+            origin: new TransformOrigin(this.preview),
+            viewportRect: this.viewport.getBoundingClientRect(),
+            transform: Transform.parse(this.preview)
         });
     }
     mouseUp(){
@@ -244,8 +267,8 @@ class Croppie extends React.Component {
         this.originalDistance = 0;
     }
     _updateOverlay() {
-        var boundRect = this.refs.boundary.getBoundingClientRect();
-        var imgData = this.refs.preview.getBoundingClientRect();
+        var boundRect = this.boundary.getBoundingClientRect();
+        var imgData = this.preview.getBoundingClientRect();
 
         this.setState({
             overlayStyle : {
@@ -258,19 +281,19 @@ class Croppie extends React.Component {
     }
     _setZoomerVal(v) {//TODO
         if (this.props.enableZoom) {
-            var z = ReactDOM.findDOMNode(this.refs.zoomer);
+            var z = ReactDOM.findDOMNode(this.zoomer);
             var val = this.fix(v, 4);
             z.value = Math.max(z.min, Math.min(z.max, val));
         }
     }
     _onZoom(ui) {
         var self 		= this;
-        var transform 	= ui ? ui.transform : Transform.parse(ReactDOM.findDOMNode(this.refs.preview));
+        var transform 	= ui ? ui.transform : Transform.parse(ReactDOM.findDOMNode(this.preview));
 
         var //TODO does this need this.vpRect
-        vpRect 		= ui ? ui.viewportRect : self.refs.elements.viewport.getBoundingClientRect();
+        vpRect 		= ui ? ui.viewportRect : this.elements.viewport.getBoundingClientRect();
 
-        var origin 		= ui ? ui.origin : new TransformOrigin(ReactDOM.findDOMNode(this.refs.preview));
+        var origin 		= ui ? ui.origin : new TransformOrigin(ReactDOM.findDOMNode(this.preview));
         var transCss 	= {};
 
         function applyCss() {
@@ -326,7 +349,7 @@ class Croppie extends React.Component {
         var vpHeight = viewport.height;
         var centerFromBoundaryX = self.props.boundary.width / 2;
         var centerFromBoundaryY = self.props.boundary.height / 2;
-        var imgRect = self.refs.preview.getBoundingClientRect();
+        var imgRect = this.preview.getBoundingClientRect();
         var curImgWidth = imgRect.width;
         var curImgHeight = imgRect.height;
         var halfWidth = vpWidth / 2;
@@ -362,8 +385,8 @@ class Croppie extends React.Component {
     fix(v, decimalPoints) {
         return parseFloat(v).toFixed(decimalPoints || 0);
     }
+
     _bind(options) {
-        var self = this;
         var url;
         var points = [];
         var zoom = null;
@@ -375,8 +398,8 @@ class Croppie extends React.Component {
         else if (Array.isArray(options)) {
             points = options.slice();
         }
-        else if (typeof (options) == 'undefined' && self.data.url) { //refreshing TODO
-            this._updatePropertiesFromImage.call(self);
+        else if (typeof (options) == 'undefined' && this.data.url) { //refreshing TODO
+            this._updatePropertiesFromImage.call(this);
             // _triggerUpdate.call(self);TODO
             return null;
         }
@@ -386,13 +409,13 @@ class Croppie extends React.Component {
             zoom = typeof(options.zoom) === 'undefined' ? null : options.zoom;
         }
 
-        self.data.bound = false;
-        self.data.url = url || self.data.url;
-        self.data.points = (points || self.data.points).map(p => parseFloat(p));
-        self.data.boundZoom = zoom;
-        var prom = this.loadImage(url, self.refs.preview);
+        this.data.bound = false;
+        this.data.url = url || this.data.url;
+        this.data.points = (points || this.data.points).map(p => parseFloat(p));
+        this.data.boundZoom = zoom;
+        var prom = this.loadImage(url, this.preview);
         prom.then(() => {
-            self._updatePropertiesFromImage.call(self);
+            this._updatePropertiesFromImage.call(self);
             // _triggerUpdate.call(self);TODO
         });
         return prom;
@@ -430,8 +453,8 @@ class Croppie extends React.Component {
         var maxZoom = 1.5;
         var initialZoom = 1;
         var cssReset = {};
-        var img = self.refs.preview;
-        var zoomer = self.refs.zoomer;
+        var img = this.preview;
+        var zoomer = this.zoomer;
         var transformReset = new Transform(0, 0, initialZoom);
         var originReset = new TransformOrigin();
         var isVisible = this._isVisible(self);
@@ -456,8 +479,8 @@ class Croppie extends React.Component {
         });
 
         imgData = img.getBoundingClientRect();
-        vpData = self.refs.viewport.getBoundingClientRect();
-        boundaryData = self.refs.boundary.getBoundingClientRect();
+        vpData = this.viewport.getBoundingClientRect();
+        boundaryData = this.boundary.getBoundingClientRect();
         self._originalImageWidth = imgData.width;
         self._originalImageHeight = imgData.height;
 
@@ -502,13 +525,13 @@ class Croppie extends React.Component {
         this._updateOverlay.call(self);
     }
     _isVisible() {//TODO
-        return this.refs.preview.offsetHeight > 0 && this.refs.preview.offsetWidth > 0;
+        return this.preview.offsetHeight > 0 && this.preview.offsetWidth > 0;
     }
     _centerImage() {
         var self = this;
-        var imgDim = self.refs.preview.getBoundingClientRect();
-        var vpDim = self.refs.viewport.getBoundingClientRect();
-        var boundDim = self.refs.boundary.getBoundingClientRect();
+        var imgDim = this.preview.getBoundingClientRect();
+        var vpDim = this.viewport.getBoundingClientRect();
+        var boundDim = this.boundary.getBoundingClientRect();
         var vpLeft = vpDim.left - boundDim.left;
         var vpTop = vpDim.top - boundDim.top;
         var w = vpLeft - ((imgDim.width - vpDim.width) / 2);
@@ -525,10 +548,10 @@ class Croppie extends React.Component {
     _updateCenterPoint() {
         var self = this;
         var scale = self._currentZoom;
-        var data = self.refs.preview.getBoundingClientRect();
-        var vpData = self.refs.viewport.getBoundingClientRect();
-        var transform = Transform.parse(self.refs.preview.style[StyleRelated.CSS_TRANSFORM]);
-        var pc = new TransformOrigin(self.refs.preview);
+        var data = this.preview.getBoundingClientRect();
+        var vpData = this.viewport.getBoundingClientRect();
+        var transform = Transform.parse(this.preview.style[StyleRelated.CSS_TRANSFORM]);
+        var pc = new TransformOrigin(this.preview);
         var top = (vpData.top - data.top) + (vpData.height / 2);
         var left = (vpData.left - data.left) + (vpData.width / 2);
         var center = {};
@@ -552,7 +575,7 @@ class Croppie extends React.Component {
     }
     assignTransformCoordinates(deltaX, deltaY) {
         var self = this;
-        var imgRect = self.refs.preview.getBoundingClientRect();
+        var imgRect = this.preview.getBoundingClientRect();
         var top = this.transform.y + deltaY;
         var left = this.transform.x + deltaX;
 
@@ -580,7 +603,7 @@ class Croppie extends React.Component {
         var quality = opts.quality;
         var backgroundColor = opts.backgroundColor;
         var circle =  typeof opts.circle === 'boolean' ? opts.circle : (self.props.viewport.type === 'circle');
-        var vpRect = self.refs.viewport.getBoundingClientRect();
+        var vpRect = this.viewport.getBoundingClientRect();
         var ratio = vpRect.width / vpRect.height;
         var prom;
         console.log("results defaults are", this.RESULT_DEFAULTS);
@@ -611,7 +634,7 @@ class Croppie extends React.Component {
 
         prom = new Promise((resolve, reject) => {
             if(type === 'rawCanvas'){
-                resolve(self._getCanvasResult(self.refs.preview,data));
+                resolve(self._getCanvasResult(this.preview,data));
             }
             if (type === 'canvas' || type == 'base64') {
                 resolve(self._getBase64Result(data));
@@ -634,12 +657,12 @@ class Croppie extends React.Component {
     }
     _getBase64Result(data){
         var self = this;
-        return self._getCanvasResult(self.refs.preview,data).toDataURL(data.format, data.quality);
+        return self._getCanvasResult(this.preview,data).toDataURL(data.format, data.quality);
     }
     _getBlobResult(data) {
         var self = this;
         return new Promise((resolve, reject) => {
-            let canvasRes = self._getCanvasResult(self.refs.preview,data);
+            let canvasRes = self._getCanvasResult(this.preview,data);
             canvasRes.toBlob(blob => {
                 resolve(blob);
             }, data.format, data.quality);
@@ -650,14 +673,14 @@ class Croppie extends React.Component {
         //TODO
         var self = this;
 
-        var imgData = self.refs.preview.getBoundingClientRect();
-        var vpData = self.refs.viewport.getBoundingClientRect();
+        var imgData = this.preview.getBoundingClientRect();
+        var vpData = this.viewport.getBoundingClientRect();
         var x1 = vpData.left - imgData.left;
         var y1 = vpData.top - imgData.top;
-        var widthDiff = (vpData.width - self.refs.viewport.offsetWidth) / 2;
-        var heightDiff = (vpData.height - self.refs.viewport.offsetHeight) / 2;
-        var x2 = x1 + self.refs.viewport.offsetWidth + widthDiff;
-        var y2 = y1 + self.refs.viewport.offsetHeight + heightDiff;
+        var widthDiff = (vpData.width - this.viewport.offsetWidth) / 2;
+        var heightDiff = (vpData.height - this.viewport.offsetHeight) / 2;
+        var x2 = x1 + this.viewport.offsetWidth + widthDiff;
+        var y2 = y1 + this.viewport.offsetHeight + heightDiff;
         var scale = self._currentZoom;
 
         if (scale === Infinity || isNaN(scale)) {

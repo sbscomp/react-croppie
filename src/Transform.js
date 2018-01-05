@@ -47,18 +47,3 @@ class Transform {
 }
 
 export default Transform;
-
-export const TransformOrigin = function (el) {
-	if (!el || !el.style[StyleRelated.CSS_TRANS_ORG]) {
-		this.x = 0;
-		this.y = 0;
-		return;
-	}
-	var css = el.style[StyleRelated.CSS_TRANS_ORG].split(' ');
-	this.x = parseFloat(css[0]);
-	this.y = parseFloat(css[1]);
-};
-
-TransformOrigin.prototype.toString = function () {
-	return this.x + 'px ' + this.y + 'px';
-};
