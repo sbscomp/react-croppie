@@ -1,4 +1,4 @@
-# react-coppie
+# react-croppie
 an image cropping plugin based on [Croppie](http://foliotek.github.io/Croppie)
 keep in mind this is a work in progress and not all the features of croppie are yet available
 ##install 
