@@ -4,13 +4,14 @@
   "description": "",
   "main": "react-croppie.js",
   "scripts": {
-    "build": "./node_modules/.bin/babel --presets react,es2015 src -d lib"
+    "build": "./node_modules/.bin/babel --presets react,es2015 src -d lib; ./node_modules/.bin/webpack demo"
   },
   "author": "arsalan salari",
   "license": "ISC",
   "dependencies": {
-    "react": "^15.3.0",
-    "react-dom": "^15.3.0"
+    "react": "^16.2.0",
+    "react-dom": "^16.2.0",
+    "react-proptypes": "^1.0.0"
   },
   "devDependencies": {
     "babel-cli": "^6.11.4",
