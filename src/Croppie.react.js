@@ -625,7 +625,7 @@ class Croppie extends React.Component {
             }
         }
 
-        if (this.RESULT_FORMATS.indexOf(format) > -1) {
+        if (Croppie.RESULT_FORMATS.indexOf(format) > -1) {
             data.format = 'image/' + format;
             data.quality = quality;
         }
