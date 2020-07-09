@@ -4,7 +4,9 @@
   "description": "",
   "main": "react-croppie.js",
   "scripts": {
-    "build": "./node_modules/.bin/babel --presets react,es2015 src -d lib; ./node_modules/.bin/webpack demo"
+    "buildLib": "./node_modules/.bin/babel --presets react,es2015 src -d lib", 
+    "demo": "./node_modules/.bin/webpack demo",
+    "build": "npm run buildLib && npm run demo"
   },
   "author": "arsalan salari",
   "license": "ISC",
