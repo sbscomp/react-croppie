@@ -32,6 +32,8 @@ class Croppie extends React.Component {
         this._onZoom = this._onZoom.bind(this);
         this._getVirtualBoundaries = this._getVirtualBoundaries.bind(this);
         this._updatePropertiesFromImage = this._updatePropertiesFromImage.bind(this);
+        this.mouseMove = this.mouseMove.bind(this);
+        this.result = this.result.bind(this);
 
 
 
